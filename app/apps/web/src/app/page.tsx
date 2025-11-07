@@ -33,7 +33,7 @@ export default function HomePage() {
 			label: "Appliance Control",
 			icon: Home,
 			color: "from-green-500 to-green-600",
-			path: null,
+			path: "/appliances",
 		},
 		{
 			id: "connect",

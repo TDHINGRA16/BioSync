@@ -457,7 +457,7 @@ export default function ChatPage({ params }: { params: Promise<{ contactId: stri
             // Eye-Tracking AI Options
             <div className="flex-1 bg-gray-50 dark:bg-gray-900 p-6">
               <div className="grid grid-cols-2 gap-5 h-full">
-                {aiOptions.map((option, index) => (
+                {aiOptions.slice(0, 2).map((option, index) => (
                   <button
                     key={index}
                     onMouseEnter={() => handleOptionHover(index, true)}
@@ -466,11 +466,7 @@ export default function ChatPage({ params }: { params: Promise<{ contactId: stri
                     className={`relative min-h-[180px] rounded-2xl p-6 text-white text-2xl font-bold shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl ${
                       index === 0
                         ? "bg-blue-500 hover:ring-4 hover:ring-blue-300"
-                        : index === 1
-                        ? "bg-green-500 hover:ring-4 hover:ring-green-300"
-                        : index === 2
-                        ? "bg-purple-500 hover:ring-4 hover:ring-purple-300"
-                        : "bg-orange-500 hover:ring-4 hover:ring-orange-300"
+                        : "bg-green-500 hover:ring-4 hover:ring-green-300"
                     } ${selectedOption === index ? "scale-105 ring-4 ring-white" : ""}`}
                   >
                     {/* Number Badge with Dwell Progress */}
@@ -500,6 +496,78 @@ export default function ChatPage({ params }: { params: Promise<{ contactId: stri
 
                     {/* Checkmark Animation */}
                     {selectedOption === index && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center animate-bounce">
+                          <svg
+                            className="w-12 h-12 text-green-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Option Text */}
+                    <div className="flex items-center justify-center h-full text-center px-4">
+                      {option}
+                    </div>
+                  </button>
+                ))}
+                
+                {/* Previous Button - First card of bottom row */}
+                <button
+                  onClick={() => router.push("/chat")}
+                  className="relative min-h-[180px] rounded-2xl p-6 text-white text-2xl font-bold shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl bg-gray-600 hover:ring-4 hover:ring-gray-400"
+                >
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    <ArrowLeft className="w-16 h-16" />
+                    <span>Previous</span>
+                  </div>
+                </button>
+
+                {aiOptions.slice(2, 3).map((option, index) => (
+                  <button
+                    key={index + 2}
+                    onMouseEnter={() => handleOptionHover(index + 2, true)}
+                    onMouseLeave={() => handleOptionHover(index + 2, false)}
+                    onClick={() => handleSendMessage(option)}
+                    className="relative min-h-[180px] rounded-2xl p-6 text-white text-2xl font-bold shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl bg-purple-500 hover:ring-4 hover:ring-purple-300"
+                  >
+                    {/* Number Badge with Dwell Progress */}
+                    <div className="absolute top-4 left-4 w-12 h-12 rounded-full bg-white bg-opacity-30 flex items-center justify-center text-3xl font-black">
+                      {dwellProgress[index + 2] > 0 && (
+                        <svg
+                          className="absolute inset-0 w-12 h-12 -rotate-90"
+                          viewBox="0 0 48 48"
+                        >
+                          <circle
+                            cx="24"
+                            cy="24"
+                            r="20"
+                            stroke="white"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray={`${2 * Math.PI * 20}`}
+                            strokeDashoffset={`${
+                              2 * Math.PI * 20 * (1 - dwellProgress[index + 2] / 100)
+                            }`}
+                            className="transition-all duration-100"
+                          />
+                        </svg>
+                      )}
+                      {index + 3}
+                    </div>
+
+                    {/* Checkmark Animation */}
+                    {selectedOption === index + 2 && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center animate-bounce">
                           <svg

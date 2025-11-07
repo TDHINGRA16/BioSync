@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Eye Tracker Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b0f16;
+            color: #eaeff6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #app {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem 2.5rem;
+        }
+        .step {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: min(980px, 95vw);
+            background: rgba(16, 23, 31, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            padding: 2rem;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+        }
+        .step.active {
+            display: flex;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: 0.05em;
+        }
+        h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            letter-spacing: 0.04em;
+        }
+        p {
+            margin: 0;
+            color: #b0c2d6;
+            line-height: 1.6;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #8fa1b8;
+            margin-bottom: 0.45rem;
+        }
+        input,
+        select {
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(12, 18, 27, 0.9);
+            color: #eaeff6;
+            font-size: 0.95rem;
+        }
+        input:disabled {
+            opacity: 0.6;
+        }
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 0.65rem 1.6rem;
+            font-size: 0.95rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            background: linear-gradient(135deg, #5f82ff, #7d5bff);
+            color: #ffffff;
+        }
+        button.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #eaeff6;
+        }
+        button.ghost {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #eaeff6;
+        }
+        button:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(95, 130, 255, 0.32);
+        }
+        .grid-two {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+        .grid-four {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+        .card {
+            background: rgba(10, 16, 23, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+        .preview-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #05070a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+        }
+        .preview-canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .overlay-text {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.55);
+            padding: 0.45rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+        .range-control {
+            display: grid;
+            gap: 0.45rem;
+        }
+        .range-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #9fb0c5;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .mask-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .mask-card {
+            background: rgba(12, 18, 27, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .mask-title {
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #8fa1b8;
+        }
+        .mask-canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            background: #05090f;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .mask-empty {
+            font-size: 0.85rem;
+            color: #536070;
+            text-align: center;
+        }
+        #message-bar {
+            width: min(980px, 95vw);
+            margin: 0 auto 2rem;
+            min-height: 52px;
+            border-radius: 12px;
+            padding: 0.85rem 1.1rem;
+            background: rgba(255, 82, 82, 0.14);
+            border: 1px solid rgba(255, 82, 82, 0.25);
+            color: #ffb5b5;
+            font-size: 0.92rem;
+            line-height: 1.4;
+        }
+        #message-bar.ok {
+            background: rgba(46, 204, 113, 0.14);
+            border-color: rgba(46, 204, 113, 0.24);
+            color: #b6f5ca;
+        }
+        #display-layer {
+            position: fixed;
+            inset: 0;
+            background: #000c19;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        #display-layer.active {
+            display: flex;
+        }
+        #display-canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background: #04070d;
+        }
+        #display-ui {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        #display-top,
+        #display-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            padding: 1.5rem;
+        }
+        #display-instructions {
+            pointer-events: auto;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 1rem 2rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            color: #d6e4ff;
+        }
+        #display-controls {
+            pointer-events: auto;
+            display: flex;
+            gap: 1rem;
+        }
+        @media (max-width: 720px) {
+            #app {
+                padding: 1.5rem 1rem 2rem;
+            }
+            .step {
+                padding: 1.5rem;
+            }
+            .grid-two {
+                grid-template-columns: 1fr;
+            }
+            .grid-four {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            #message-bar {
+                margin-bottom: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <section class="step active" data-step="source">
+        <div>
+            <h1>IR Eye Tracker Setup</h1>
+            <p>Step through source selection, ROI, threshold tuning, and calibration just like the desktop UI. Start the Python backend before continuing.</p>
+        </div>
+        <div class="card">
+            <h2>1 · Choose Backend & Source</h2>
+            <div class="grid-two">
+                <div>
+                    <label for="backend-url">Backend URL</label>
+                    <input type="text" id="backend-url" value="http://localhost:8000" placeholder="http://SERVER:8000">
+                </div>
+                <div>
+                    <label for="backend-status">Backend status</label>
+                    <input type="text" id="backend-status" value="disconnected" disabled>
+                </div>
+            </div>
+            <div class="card" style="background: rgba(17, 25, 35, 0.85);">
+                <p>Select how you want to capture the eye video.</p>
+                <div class="grid-two">
+                    <div>
+                        <label for="usb-index">USB / built-in camera index</label>
+                        <input type="number" id="usb-index" value="0" min="0">
+                        <div class="toolbar">
+                            <button id="start-usb">Start USB Setup</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="stream-url">Network stream (MJPEG / RTSP)</label>
+                        <input type="text" id="stream-url" placeholder="http://camera-ip:port/stream">
+                        <div class="toolbar">
+                            <button class="secondary" id="start-stream">Start Stream Setup</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolbar">
+                <button class="secondary" id="refresh-status">Check Backend</button>
+                <button class="secondary" id="resume-setup" style="display: none;">Resume ROI Setup</button>
+            </div>
+        </div>
+    </section>
+    <section class="step" data-step="roi">
+        <div>
+            <h2>2 · Select Eye ROI</h2>
+            <p>Drag a rectangle around the eye within the live preview. Wireless feeds stream over WebSocket for low-latency selection.</p>
+        </div>
+        <div class="preview-wrapper">
+            <canvas id="preview-canvas" class="preview-canvas" width="960" height="540"></canvas>
+            <div class="overlay-text">Drag to define the crop region · double-click to reset</div>
+        </div>
+        <div class="card">
+            <div class="grid-four">
+                <div>
+                    <label for="roi-x">X</label>
+                    <input type="number" id="roi-x" min="0">
+                </div>
+                <div>
+                    <label for="roi-y">Y</label>
+                    <input type="number" id="roi-y" min="0">
+                </div>
+                <div>
+                    <label for="roi-width">Width</label>
+                    <input type="number" id="roi-width" min="1">
+                </div>
+                <div>
+                    <label for="roi-height">Height</label>
+                    <input type="number" id="roi-height" min="1">
+                </div>
+            </div>
+            <div class="toolbar" style="justify-content: space-between;">
+                <div class="toolbar">
+                    <button class="secondary" id="roi-back">Back to Source</button>
+                    <button id="roi-apply" disabled>Apply ROI</button>
+                    <button class="secondary" id="roi-fullframe">Use Full Frame</button>
+                </div>
+                <button id="roi-next" class="secondary" disabled>Continue to Thresholds</button>
+            </div>
+        </div>
+    </section>
+    <section class="step" data-step="params">
+        <div>
+            <h2>3 · Tune Detection Thresholds</h2>
+            <p>Adjust the thresholds or pick pixels directly from the preview (darkest pupil vs brightest glint). The in-frame overlays show the live binary masks so you can confirm the pupil lock before moving on.</p>
+        </div>
+        <div class="preview-wrapper">
+            <canvas id="preview-canvas-params" class="preview-canvas" width="960" height="540"></canvas>
+            <div class="overlay-text">Click “Pick Pupil Pixel”, then click the pupil · repeat for glint · overlays show the threshold views</div>
+        </div>
+        <div class="card">
+            <div class="grid-two">
+                <div class="range-control">
+                    <div class="range-label">
+                        <span>Pupil Threshold</span>
+                        <span id="pupil-thresh-value">50</span>
+                    </div>
+                    <input type="range" id="pupil-thresh" min="10" max="200" value="50">
+                    <div class="toolbar">
+                        <button class="secondary" id="pick-pupil">Pick Pupil Pixel</button>
+                    </div>
+                </div>
+                <div class="range-control">
+                    <div class="range-label">
+                        <span>Pupil Blur (odd kernel)</span>
+                        <span id="pupil-blur-value">3</span>
+                    </div>
+                    <input type="range" id="pupil-blur" min="1" max="21" step="2" value="3">
+                </div>
+                <div class="range-control">
+                    <div class="range-label">
+                        <span>Glint Threshold</span>
+                        <span id="glint-thresh-value">240</span>
+                    </div>
+                    <input type="range" id="glint-thresh" min="150" max="255" value="240">
+                    <div class="toolbar">
+                        <button class="secondary" id="pick-glint">Pick Glint Pixel</button>
+                    </div>
+                </div>
+                <div class="range-control">
+                    <div class="range-label">
+                        <span>Glint Blur (odd kernel)</span>
+                        <span id="glint-blur-value">9</span>
+                    </div>
+                    <input type="range" id="glint-blur" min="1" max="25" step="2" value="9">
+                </div>
+                <div class="range-control">
+                    <div class="range-label">
+                        <span>Ray History</span>
+                        <span id="ray-history-value">100</span>
+                    </div>
+                    <input type="range" id="ray-history" min="30" max="300" value="100">
+                </div>
+                <div class="range-control">
+                    <div class="range-label">
+                        <span>Smoothing</span>
+                        <span id="smoothing-value">0.12</span>
+                    </div>
+                    <input type="range" id="smoothing" min="5" max="40" value="12">
+                </div>
+            </div>
+            <div class="toolbar" style="justify-content: space-between;">
+                <button class="secondary" id="params-back">Back to ROI</button>
+                <div class="toolbar">
+                    <button class="ghost" id="save-params">Save Parameters</button>
+                    <button id="to-calibration">Proceed to Calibration</button>
+                    <button class="secondary" id="show-tracking" disabled>Show Tracking Overlay</button>
+                </div>
+            </div>
+            <div class="mask-panel">
+                <div class="mask-card">
+                    <span class="mask-title">Pupil Threshold View</span>
+                    <canvas id="pupil-mask-canvas" class="mask-canvas" width="240" height="180"></canvas>
+                    <div class="mask-empty" id="pupil-mask-empty" data-default="No data yet · define ROI">No data yet · define ROI</div>
+                </div>
+                <div class="mask-card">
+                    <span class="mask-title">Glint Threshold View</span>
+                    <canvas id="glint-mask-canvas" class="mask-canvas" width="240" height="180"></canvas>
+                    <div class="mask-empty" id="glint-mask-empty" data-default="No data yet · define ROI">No data yet · define ROI</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<div id="message-bar">Waiting for backend connection…</div>
+<div id="display-layer">
+    <canvas id="display-canvas" width="1920" height="1080"></canvas>
+    <div id="display-ui">
+        <div id="display-top">
+            <div id="display-instructions">Calibration ready</div>
+        </div>
+        <div id="display-bottom">
+            <div id="display-controls">
+                <button id="display-primary">Capture</button>
+                <button id="display-secondary" class="secondary">Skip</button>
+                <button id="display-tertiary" class="ghost">Abort</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const state = {
+        backendUrl: "http://localhost:8000",
+        currentStep: "source",
+        ws: null,
+        previewCanvas: null,
+        previewCtx: null,
+        previewCanvasParams: null,
+        previewCtxParams: null,
+        offscreen: document.createElement("canvas"),
+        offscreenCtx: null,
+        previewFrameWidth: 0,
+        previewFrameHeight: 0,
+        latestImageData: null,
+        latestPupilMask: null,
+        latestGlintMask: null,
+        activeRoiRect: null,
+        pendingRoiFrame: null,
+        serverRoi: null,
+        drawingRoi: false,
+        roiStart: null,
+        pickMode: null,
+        parameterDebounce: null,
+        messageTimer: null,
+        previewStopRequested: false,
+        visibilityTimeout: null,
+        displayCanvas: null,
+        displayCtx: null,
+        displayMode: null,
+        displayAnimation: null,
+        displayVisible: false,
+        displayResumeEnabled: false,
+        displayActionBusy: false,
+    displayActionLockUntil: 0,
+        displayCanvasBounds: null,
+        displayCanvasScale: 1,
+        gazePoll: null,
+        trackingDot: null,
+        trackingHistory: [],
+        trackingMaxHistory: 32,
+        fallbackGaze: null,
+        lastGazeAt: 0,
+        calibrationPoints: [],
+        calibrationIndex: 0,
+        calibrationCollected: 0,
+        calibrationScreen: null,
+        isCapturing: false,
+        captureStart: 0,
+        resumeButton: null,
+        showTrackingButton: null,
+        trackingAvailable: false,
+    };
+
+    function updateTrackingButton() {
+        if (!state.showTrackingButton) {
+            return;
+        }
+        const enabled = Boolean(state.trackingAvailable) && state.currentStep === "params";
+        state.showTrackingButton.disabled = !enabled;
+        state.showTrackingButton.textContent = "Show Tracking Overlay";
+        state.showTrackingButton.title = enabled ? "" : "Complete calibration to enable tracking overlay.";
+    }
+
+    function setStep(stepName) {
+        state.currentStep = stepName;
+        document.querySelectorAll(".step").forEach((section) => {
+            section.classList.toggle("active", section.dataset.step === stepName);
+        });
+        if (stepName === "source") {
+            closePreviewSocket();
+        } else {
+            ensurePreviewSocket();
+        }
+        updateTrackingButton();
+    }
+
+    function setMessage(message, ok = false) {
+        const bar = document.getElementById("message-bar");
+        if (!bar) {
+            return;
+        }
+        if (state.messageTimer) {
+            clearTimeout(state.messageTimer);
+            state.messageTimer = null;
+        }
+        bar.textContent = message || "";
+        bar.classList.toggle("ok", Boolean(ok));
+        if (message && ok) {
+            state.messageTimer = setTimeout(() => {
+                bar.textContent = "";
+                bar.classList.remove("ok");
+                state.messageTimer = null;
+            }, 3200);
+        }
+    }
+
+    const lockDisplayActions = (durationMs = 400) => {
+        state.displayActionLockUntil = Date.now() + Math.max(0, durationMs);
+    };
+
+    const runDisplayAction = async (fn) => {
+        if (state.displayActionLockUntil && Date.now() < state.displayActionLockUntil) {
+            return;
+        }
+        state.displayActionLockUntil = 0;
+        if (state.displayActionBusy) {
+            return;
+        }
+        state.displayActionBusy = true;
+        try {
+            await fn();
+        } finally {
+            state.displayActionBusy = false;
+        }
+    };
+
+    function ensurePreviewSocket() {
+        if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+            return;
+        }
+        connectPreviewSocket();
+    }
+
+    function closePreviewSocket() {
+        if (state.ws) {
+            state.ws.onopen = null;
+            state.ws.onclose = null;
+            state.ws.onerror = null;
+            state.ws.onmessage = null;
+            state.ws.close();
+            state.ws = null;
+        }
+    }
+
+    function connectPreviewSocket() {
+        closePreviewSocket();
+        const base = new URL(state.backendUrl);
+        base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
+        base.pathname = "/ws/preview";
+        const ws = new WebSocket(base.href);
+        ws.onopen = () => setMessage("Preview stream connected", true);
+        ws.onerror = () => setMessage("Preview stream error");
+        ws.onclose = () => setMessage("Preview stream closed");
+        ws.onmessage = (event) => handlePreviewFrame(event.data);
+        state.ws = ws;
+    }
+
+    function handlePreviewFrame(payload) {
+        try {
+            const frame = JSON.parse(payload);
+            if (!frame || !frame.data) {
+                return;
+            }
+            state.previewFrameWidth = frame.width;
+            state.previewFrameHeight = frame.height;
+            state.latestPupilMask = frame.pupil_mask || null;
+            state.latestGlintMask = frame.glint_mask || null;
+            drawPreview(frame);
+        } catch (error) {
+            console.error("Preview frame parse error", error);
+        }
+    }
+
+    function drawPreview(framePayload) {
+        const { data: base64Data, roi } = framePayload;
+        const image = new Image();
+        image.onload = () => {
+            drawOnCanvas(state.previewCanvas, state.previewCtx, image, roi);
+            drawOnCanvas(state.previewCanvasParams, state.previewCtxParams, image, roi);
+            const previewWidth = state.previewCanvas.width;
+            const previewHeight = state.previewCanvas.height;
+            if (previewWidth > 0 && previewHeight > 0) {
+                state.offscreen.width = previewWidth;
+                state.offscreen.height = previewHeight;
+                state.offscreenCtx.clearRect(0, 0, previewWidth, previewHeight);
+                state.offscreenCtx.drawImage(image, 0, 0, previewWidth, previewHeight);
+                state.latestImageData = state.offscreenCtx.getImageData(0, 0, previewWidth, previewHeight);
+            } else {
+                state.latestImageData = null;
+            }
+            if (!state.activeRoiRect && state.serverRoi) {
+                const canvasRect = scaleRoiToCanvas(
+                    [state.serverRoi.x, state.serverRoi.y, state.serverRoi.width, state.serverRoi.height],
+                    state.previewCanvas
+                );
+                state.activeRoiRect = canvasRect;
+            }
+            if (state.activeRoiRect) {
+                drawRoiOverlay(state.previewCtx, state.activeRoiRect, "rgba(116, 185, 255, 0.8)");
+                drawRoiOverlay(state.previewCtxParams, state.activeRoiRect, "rgba(116, 185, 255, 0.8)");
+            }
+            updateMaskCanvas(state.pupilMaskCanvas, state.pupilMaskCtx, state.latestPupilMask, "#f1c40f", state.pupilMaskLabel);
+            updateMaskCanvas(state.glintMaskCanvas, state.glintMaskCtx, state.latestGlintMask, "#74b9ff", state.glintMaskLabel);
+        };
+        image.src = `data:image/jpeg;base64,${base64Data}`;
+    }
+
+    function updateMaskCanvas(canvas, ctx, maskInfo, accentColor, labelEl) {
+        if (!canvas || !ctx) {
+            return;
+        }
+        if (!maskInfo || !maskInfo.data) {
+            const parentWidth = canvas.parentElement?.clientWidth || canvas.width || 240;
+            const height = Math.max(Math.round(parentWidth * 0.65), 120);
+            canvas.width = parentWidth;
+            canvas.height = height;
+            ctx.fillStyle = "#05090f";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (labelEl) {
+                labelEl.textContent = labelEl.dataset?.default || "No data";
+                labelEl.style.display = "block";
+            }
+            return;
+        }
+        const maskImage = new Image();
+        maskImage.onload = () => {
+            const parentWidth = canvas.parentElement?.clientWidth || canvas.width || 240;
+            const aspect = maskImage.width / maskImage.height || 1;
+            canvas.width = parentWidth;
+            canvas.height = parentWidth / aspect;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(maskImage, 0, 0, canvas.width, canvas.height);
+            if (labelEl) {
+                labelEl.style.display = "none";
+            }
+            ctx.strokeStyle = accentColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+        };
+        maskImage.src = `data:image/png;base64,${maskInfo.data}`;
+    }
+
+    function clearMaskCanvas(canvas, ctx, labelEl, message = "No data") {
+        if (!canvas || !ctx) {
+            return;
+        }
+        const parentWidth = canvas.parentElement?.clientWidth || canvas.width || 240;
+        const height = Math.max(Math.round(parentWidth * 0.65), 120);
+        canvas.width = parentWidth;
+        canvas.height = height;
+        ctx.fillStyle = "#05090f";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (labelEl) {
+            const text = (message ?? labelEl.dataset?.default) || "No data";
+            labelEl.textContent = text;
+            labelEl.style.display = "block";
+        }
+    }
+
+    function drawOnCanvas(canvas, ctx, image, roi) {
+        if (!canvas || !ctx) {
+            return;
+        }
+        resizeCanvasToMaintainAspect(canvas, image.width / image.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        if (roi) {
+            const rect = scaleRoiToCanvas(roi, canvas);
+            drawRoiOverlay(ctx, rect, "rgba(39, 174, 96, 0.85)");
+        }
+    }
+
+    function resizeCanvasToMaintainAspect(canvas, aspect) {
+        const parent = canvas.parentElement;
+        if (!parent) {
+            return;
+        }
+        const width = parent.clientWidth;
+        const height = width / aspect;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    function drawRoiOverlay(ctx, rect, color) {
+        if (!rect) {
+            return;
+        }
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 6]);
+        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+        ctx.restore();
+    }
+
+    function canvasToFrame(rect) {
+        const scaleX = state.previewFrameWidth / state.previewCanvas.width;
+        const scaleY = state.previewFrameHeight / state.previewCanvas.height;
+        return {
+            x: Math.max(0, Math.round(rect.x * scaleX)),
+            y: Math.max(0, Math.round(rect.y * scaleY)),
+            width: Math.max(1, Math.round(rect.width * scaleX)),
+            height: Math.max(1, Math.round(rect.height * scaleY)),
+        };
+    }
+
+    function scaleRoiToCanvas(roi, canvas) {
+        const scaleX = canvas.width / state.previewFrameWidth;
+        const scaleY = canvas.height / state.previewFrameHeight;
+        return {
+            x: roi[0] * scaleX,
+            y: roi[1] * scaleY,
+            width: roi[2] * scaleX,
+            height: roi[3] * scaleY,
+        };
+    }
+
+    function beginRoiSelection(event) {
+        if (state.currentStep !== "roi") {
+            return;
+        }
+        const rect = state.previewCanvas.getBoundingClientRect();
+        state.drawingRoi = true;
+        state.roiStart = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+        };
+        state.activeRoiRect = { x: state.roiStart.x, y: state.roiStart.y, width: 0, height: 0 };
+        drawRoiOverlay(state.previewCtx, state.activeRoiRect, "rgba(116, 185, 255, 0.8)");
+    }
+
+    function updateRoiSelection(event) {
+        if (!state.drawingRoi || state.currentStep !== "roi") {
+            return;
+        }
+        const rect = state.previewCanvas.getBoundingClientRect();
+        const current = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+        };
+        const width = current.x - state.roiStart.x;
+        const height = current.y - state.roiStart.y;
+        state.activeRoiRect = {
+            x: Math.min(state.roiStart.x, current.x),
+            y: Math.min(state.roiStart.y, current.y),
+            width: Math.abs(width),
+            height: Math.abs(height),
+        };
+    }
+
+    function finishRoiSelection() {
+        if (!state.drawingRoi || state.currentStep !== "roi") {
+            return;
+        }
+        state.drawingRoi = false;
+        if (!state.activeRoiRect || state.activeRoiRect.width < 30 || state.activeRoiRect.height < 30) {
+            setMessage("ROI too small · drag a larger rectangle");
+            state.activeRoiRect = null;
+            return;
+        }
+        state.pendingRoiFrame = canvasToFrame(state.activeRoiRect);
+        updateRoiInputs(state.pendingRoiFrame);
+        document.getElementById("roi-apply").disabled = false;
+        document.getElementById("roi-next").disabled = false;
+        setMessage("ROI prepared · click Apply to send", true);
+    }
+
+    function updateRoiInputs(roi) {
+        document.getElementById("roi-x").value = roi.x;
+        document.getElementById("roi-y").value = roi.y;
+        document.getElementById("roi-width").value = roi.width;
+        document.getElementById("roi-height").value = roi.height;
+    }
+
+    async function applyRoi() {
+        const roi = state.pendingRoiFrame;
+        if (!roi) {
+            setMessage("No ROI to apply");
+            return;
+        }
+        try {
+            await fetchJSON("/api/roi", {
+                method: "PUT",
+                body: JSON.stringify(roi),
+            });
+            setMessage("ROI applied", true);
+        } catch (error) {
+            setMessage(`ROI apply failed: ${error.message}`);
+        }
+    }
+
+    async function useFullFrame() {
+        try {
+            await fetchJSON("/api/roi", { method: "DELETE" });
+            setMessage("ROI cleared", true);
+            state.pendingRoiFrame = null;
+            state.activeRoiRect = null;
+            document.getElementById("roi-apply").disabled = true;
+            document.getElementById("roi-next").disabled = false;
+        } catch (error) {
+            setMessage(`Unable to clear ROI: ${error.message}`);
+        }
+    }
+
+    function initParameterControls() {
+        const controls = [
+            { id: "pupil-thresh", valueId: "pupil-thresh-value", format: (v) => Number(v) },
+            { id: "pupil-blur", valueId: "pupil-blur-value", format: (v) => Number(v) },
+            { id: "glint-thresh", valueId: "glint-thresh-value", format: (v) => Number(v) },
+            { id: "glint-blur", valueId: "glint-blur-value", format: (v) => Number(v) },
+            { id: "ray-history", valueId: "ray-history-value", format: (v) => Number(v) },
+            { id: "smoothing", valueId: "smoothing-value", format: (v) => (Number(v) / 100).toFixed(2) },
+        ];
+        controls.forEach(({ id, valueId, format }) => {
+            const input = document.getElementById(id);
+            const output = document.getElementById(valueId);
+            input.addEventListener("input", () => {
+                output.textContent = format(input.value);
+                scheduleParameterUpdate();
+            });
+        });
+    }
+
+    function currentParameterValues() {
+        return {
+            pupil_thresh: Number(document.getElementById("pupil-thresh").value),
+            pupil_blur: Number(document.getElementById("pupil-blur").value),
+            glint_thresh: Number(document.getElementById("glint-thresh").value),
+            glint_blur: Number(document.getElementById("glint-blur").value),
+            ray_history: Number(document.getElementById("ray-history").value),
+            smoothing_factor: Number(document.getElementById("smoothing").value) / 100,
+        };
+    }
+
+    function scheduleParameterUpdate() {
+        if (state.parameterDebounce) {
+            clearTimeout(state.parameterDebounce);
+        }
+        state.parameterDebounce = setTimeout(sendParameterUpdate, 200);
+    }
+
+    async function sendParameterUpdate() {
+        try {
+            await fetchJSON("/api/parameters", {
+                method: "PUT",
+                body: JSON.stringify(currentParameterValues()),
+            });
+        } catch (error) {
+            setMessage(`Unable to update parameters: ${error.message}`);
+        }
+    }
+
+    function setPickMode(mode) {
+        state.pickMode = mode;
+        setMessage(`Click on the ${mode === "pupil" ? "dark pupil" : "bright glint"} in the preview`);
+    }
+
+    function handlePreviewClick(event) {
+        if (state.currentStep !== "params" || !state.pickMode || !state.latestImageData) {
+            return;
+        }
+        const canvas = state.previewCanvasParams;
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor(((event.clientX - rect.left) / rect.width) * canvas.width);
+        const y = Math.floor(((event.clientY - rect.top) / rect.height) * canvas.height);
+        const index = (y * state.latestImageData.width + x) * 4;
+        const r = state.latestImageData.data[index];
+        const g = state.latestImageData.data[index + 1];
+        const b = state.latestImageData.data[index + 2];
+        const intensity = (r + g + b) / 3;
+        if (state.pickMode === "pupil") {
+            const threshold = Math.min(200, Math.max(20, Math.round(intensity + 20)));
+            document.getElementById("pupil-thresh").value = threshold;
+            document.getElementById("pupil-thresh-value").textContent = threshold;
+        } else {
+            const threshold = Math.max(120, Math.min(255, Math.round(intensity - 25)));
+            document.getElementById("glint-thresh").value = threshold;
+            document.getElementById("glint-thresh-value").textContent = threshold;
+        }
+        state.pickMode = null;
+        scheduleParameterUpdate();
+        setMessage("Threshold updated from pixel", true);
+    }
+
+    async function startCalibration() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        state.calibrationScreen = { width, height };
+        state.trackingAvailable = false;
+        updateTrackingButton();
+        try {
+            const response = await fetchJSON("/api/calibration/start", {
+                method: "POST",
+                body: JSON.stringify({ screen_width: width, screen_height: height }),
+            });
+            state.calibrationPoints = response.points.map(([x, y]) => ({
+                x,
+                y,
+                nx: x / width,
+                ny: y / height,
+            }));
+            state.calibrationIndex = 0;
+            state.calibrationCollected = 0;
+            state.isCapturing = false;
+            state.trackingHistory = [];
+            state.trackingDot = null;
+            enterDisplayMode("calibration");
+            setDisplayButtonsForCalibration();
+            setMessage("Calibration started. Follow on-screen prompts.", true);
+        } catch (error) {
+            setMessage(`Calibration start failed: ${error.message}`);
+        }
+    }
+
+    function enterDisplayMode(mode) {
+        state.displayMode = mode;
+        const layer = document.getElementById("display-layer");
+        layer.classList.add("active");
+        resizeDisplayCanvas();
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.().catch(() => {});
+        }
+        cancelAnimationFrame(state.displayAnimation);
+        renderDisplay(performance.now());
+        if (mode === "tracking") {
+            startGazePolling();
+        } else {
+            stopGazePolling();
+        }
+    }
+
+    function leaveDisplayMode() {
+        stopGazePolling();
+        cancelAnimationFrame(state.displayAnimation);
+        document.getElementById("display-layer").classList.remove("active");
+        if (document.fullscreenElement) {
+            document.exitFullscreen?.();
+        }
+    }
+
+    function resizeDisplayCanvas() {
+        state.displayCanvas.width = window.innerWidth;
+        state.displayCanvas.height = window.innerHeight;
+    }
+
+    function renderDisplay(timestamp) {
+        const ctx = state.displayCtx;
+        const width = state.displayCanvas.width;
+        const height = state.displayCanvas.height;
+        ctx.clearRect(0, 0, width, height);
+        if (state.displayMode === "calibration") {
+            drawCalibrationScene(ctx, width, height, timestamp);
+        } else if (state.displayMode === "tracking") {
+            drawTrackingScene(ctx, width, height);
+        }
+        state.displayAnimation = requestAnimationFrame(renderDisplay);
+    }
+
+    function drawCalibrationScene(ctx, width, height, timestamp) {
+        ctx.fillStyle = "#03060d";
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = "rgba(255,255,255,0.04)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= width; x += 160) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += 160) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        state.calibrationPoints.forEach((point, index) => {
+            const cx = point.nx * width;
+            const cy = point.ny * height;
+            if (index < state.calibrationIndex) {
+                ctx.fillStyle = "#2ecc71";
+                ctx.beginPath();
+                ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (index === state.calibrationIndex) {
+                const pulse = 20 + Math.sin(timestamp / 200) * 6;
+                ctx.strokeStyle = "#f1c40f";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(cx, cy, pulse, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = "rgba(241,196,15,0.5)";
+                ctx.beginPath();
+                ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = "#34495e";
+                ctx.beginPath();
+                ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+        if (state.isCapturing) {
+            const elapsed = (performance.now() - state.captureStart) / 1000;
+            const progress = Math.min(1, elapsed / 2.5);
+            const point = state.calibrationPoints[state.calibrationIndex];
+            if (point) {
+                const cx = point.nx * width;
+                const cy = point.ny * height;
+                ctx.strokeStyle = "rgba(39,174,96,0.9)";
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 60, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+                ctx.stroke();
+            }
+        }
+    }
+
+    function drawTrackingScene(ctx, width, height) {
+        ctx.fillStyle = "#020408";
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= width; x += 140) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += 140) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(width / 2, 0);
+        ctx.lineTo(width / 2, height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+        if (state.trackingHistory.length > 1) {
+            ctx.strokeStyle = "rgba(46, 204, 113, 0.45)";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            state.trackingHistory.forEach((point, index) => {
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.stroke();
+        }
+        if (state.trackingDot) {
+            const { x, y } = state.trackingDot;
+            ctx.fillStyle = "rgba(12, 255, 173, 0.3)";
+            ctx.beginPath();
+            ctx.arc(x, y, 32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#0affad";
+            ctx.beginPath();
+            ctx.arc(x, y, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function setDisplayButtonsForCalibration() {
+        const primary = document.getElementById("display-primary");
+        const secondary = document.getElementById("display-secondary");
+        const tertiary = document.getElementById("display-tertiary");
+        primary.textContent = "Capture";
+        secondary.textContent = "Skip";
+        tertiary.textContent = "Abort";
+        primary.disabled = false;
+        secondary.disabled = false;
+        tertiary.disabled = false;
+        document.getElementById("display-instructions").textContent = `Point 1 / ${state.calibrationPoints.length}`;
+    }
+
+    async function captureCalibration(skip = false) {
+        const total = state.calibrationPoints.length;
+        if (skip) {
+            state.calibrationIndex = Math.min(total - 1, state.calibrationIndex + 1);
+            document.getElementById("display-instructions").textContent = `Point ${state.calibrationIndex + 1} / ${total}`;
+            return;
+        }
+        const point = state.calibrationPoints[state.calibrationIndex];
+        if (!point) {
+            return;
+        }
+        state.isCapturing = true;
+        state.captureStart = performance.now();
+        document.getElementById("display-primary").disabled = true;
+        document.getElementById("display-secondary").disabled = true;
+        document.getElementById("display-instructions").textContent = "Collecting samples… hold gaze steady";
+        try {
+            await fetchJSON("/api/calibration/capture", {
+                method: "POST",
+                body: JSON.stringify({
+                    point_index: state.calibrationIndex,
+                    screen_x: point.x,
+                    screen_y: point.y,
+                }),
+            });
+            state.calibrationCollected += 1;
+            state.calibrationIndex += 1;
+            const totalPoints = state.calibrationPoints.length;
+            if (state.calibrationIndex >= totalPoints) {
+                document.getElementById("display-instructions").textContent = "All points captured · finalize calibration";
+                setDisplayButtonsForFinalize();
+            } else {
+                document.getElementById("display-instructions").textContent = `Point ${state.calibrationIndex + 1} / ${totalPoints}`;
+                document.getElementById("display-primary").disabled = false;
+                document.getElementById("display-secondary").disabled = false;
+            }
+        } catch (error) {
+            setMessage(`Calibration capture failed: ${error.message}`);
+            document.getElementById("display-primary").disabled = false;
+            document.getElementById("display-secondary").disabled = false;
+        } finally {
+            state.isCapturing = false;
+        }
+    }
+
+    function setDisplayButtonsForFinalize() {
+        const primary = document.getElementById("display-primary");
+        const secondary = document.getElementById("display-secondary");
+        const tertiary = document.getElementById("display-tertiary");
+        primary.textContent = "Finalize";
+        secondary.textContent = "Recalibrate";
+        tertiary.textContent = "Exit";
+        primary.disabled = false;
+        secondary.disabled = false;
+        tertiary.disabled = false;
+    }
+
+    async function finalizeCalibration() {
+        try {
+            await fetchJSON("/api/calibration/finish", {
+                method: "POST",
+                body: JSON.stringify({
+                    screen_width: state.calibrationScreen.width,
+                    screen_height: state.calibrationScreen.height,
+                }),
+            });
+            leaveDisplayMode();
+            setStep("params");
+            state.trackingAvailable = true;
+            updateTrackingButton();
+            setMessage("Calibration complete. Use ‘Show Tracking Overlay’ when ready.", true);
+        } catch (error) {
+            setMessage(`Calibration finalize failed: ${error.message}`);
+        }
+    }
+
+    function setDisplayButtonsForTracking() {
+        const primary = document.getElementById("display-primary");
+        const secondary = document.getElementById("display-secondary");
+        const tertiary = document.getElementById("display-tertiary");
+        primary.textContent = "Exit Tracking";
+        secondary.textContent = "Recalibrate";
+        tertiary.textContent = "Stop Session";
+        primary.disabled = false;
+        secondary.disabled = false;
+        tertiary.disabled = false;
+        document.getElementById("display-instructions").textContent = "Live gaze tracking";
+        lockDisplayActions(600);
+    }
+
+    function startGazePolling() {
+        stopGazePolling();
+        state.gazePoll = setInterval(pollGazeData, 120);
+    }
+
+    function stopGazePolling() {
+        if (state.gazePoll) {
+            clearInterval(state.gazePoll);
+            state.gazePoll = null;
+        }
+    }
+
+    async function pollGazeData() {
+        try {
+            const data = await fetchJSON("/api/gaze");
+            let px = null;
+            let py = null;
+
+            if (data.calibrated_position) {
+                const scaleX = state.displayCanvas.width / state.calibrationScreen.width;
+                const scaleY = state.displayCanvas.height / state.calibrationScreen.height;
+                px = data.calibrated_position.x * scaleX;
+                py = data.calibrated_position.y * scaleY;
+            } else if (data.normalized_pupil) {
+                px = data.normalized_pupil.x * state.displayCanvas.width;
+                py = data.normalized_pupil.y * state.displayCanvas.height;
+            }
+
+            if (px === null || py === null || Number.isNaN(px) || Number.isNaN(py)) {
+                state.trackingDot = null;
+                return;
+            }
+
+            px = Math.max(12, Math.min(state.displayCanvas.width - 12, px));
+            py = Math.max(12, Math.min(state.displayCanvas.height - 12, py));
+
+            state.trackingDot = { x: px, y: py };
+            state.trackingHistory.push(state.trackingDot);
+            if (state.trackingHistory.length > state.trackingMaxHistory) {
+                state.trackingHistory.shift();
+            }
+        } catch (error) {
+            // ignore transient fetch issues
+        }
+    }
+
+    async function stopSession() {
+        stopGazePolling();
+        closePreviewSocket();
+        try {
+            await fetchJSON("/api/stop", { method: "POST" });
+        } catch (error) {
+            console.warn("Stop session", error);
+        }
+        leaveDisplayMode();
+        setStep("source");
+        setMessage("Session stopped", true);
+        state.latestPupilMask = null;
+        state.latestGlintMask = null;
+        state.serverRoi = null;
+        state.trackingAvailable = false;
+        updateTrackingButton();
+        clearMaskCanvas(state.pupilMaskCanvas, state.pupilMaskCtx, state.pupilMaskLabel, "No data yet · define ROI");
+        clearMaskCanvas(state.glintMaskCanvas, state.glintMaskCtx, state.glintMaskLabel, "No data yet · define ROI");
+    }
+
+    async function startUsbSetup() {
+        state.backendUrl = document.getElementById("backend-url").value.trim();
+        const source = String(document.getElementById("usb-index").value.trim() || "0");
+        await startSource(source);
+    }
+
+    async function startStreamSetup() {
+        state.backendUrl = document.getElementById("backend-url").value.trim();
+        const source = document.getElementById("stream-url").value.trim();
+        if (!source) {
+            setMessage("Enter a stream URL");
+            return;
+        }
+        await startSource(source);
+    }
+
+    async function startSource(source) {
+        try {
+            const result = await fetchJSON("/api/start", {
+                method: "POST",
+                body: JSON.stringify({ source }),
+            });
+            document.getElementById("backend-status").value = "running";
+            if (result?.status === "already-running") {
+                setMessage("Video source already running", true);
+            } else if (result?.status === "restarted") {
+                setMessage("Video source restarted", true);
+            } else {
+                setMessage("Video source started", true);
+            }
+            state.activeRoiRect = null;
+            state.pendingRoiFrame = null;
+            state.serverRoi = null;
+            state.trackingAvailable = false;
+            updateTrackingButton();
+            document.getElementById("roi-apply").disabled = true;
+            document.getElementById("roi-next").disabled = true;
+            state.latestPupilMask = null;
+            state.latestGlintMask = null;
+            clearMaskCanvas(state.pupilMaskCanvas, state.pupilMaskCtx, state.pupilMaskLabel, "Waiting for preview…");
+            clearMaskCanvas(state.glintMaskCanvas, state.glintMaskCtx, state.glintMaskLabel, "Waiting for preview…");
+            ensurePreviewSocket();
+            setStep("roi");
+        } catch (error) {
+            setMessage(`Unable to start source: ${error.message}`);
+        }
+    }
+
+    async function refreshBackendStatus(autoNavigate = false) {
+        try {
+            const status = await fetchJSON("/api/status");
+            const running = Boolean(status.running);
+            document.getElementById("backend-status").value = running ? "running" : "idle";
+            if (state.resumeButton) {
+                state.resumeButton.style.display = running ? "inline-flex" : "none";
+            }
+
+            if (running) {
+                const calibrationLoaded = Boolean(status.calibration_loaded);
+                state.trackingAvailable = calibrationLoaded;
+                updateTrackingButton();
+                setMessage("Backend reachable", true);
+                if (Array.isArray(status.roi) && status.roi.length === 4) {
+                    const roi = {
+                        x: Number(status.roi[0]) || 0,
+                        y: Number(status.roi[1]) || 0,
+                        width: Number(status.roi[2]) || 0,
+                        height: Number(status.roi[3]) || 0,
+                    };
+                    state.serverRoi = roi;
+                    state.pendingRoiFrame = roi;
+                    updateRoiInputs(roi);
+                    document.getElementById("roi-next").disabled = false;
+                    document.getElementById("roi-apply").disabled = false;
+                } else {
+                    state.serverRoi = null;
+                    document.getElementById("roi-apply").disabled = true;
+                    document.getElementById("roi-next").disabled = true;
+                }
+
+                if (autoNavigate && state.currentStep === "source") {
+                    ensurePreviewSocket();
+                    setStep(state.serverRoi ? "params" : "roi");
+                }
+            } else {
+                if (state.resumeButton) {
+                    state.resumeButton.style.display = "none";
+                }
+                state.serverRoi = null;
+                if (autoNavigate && state.currentStep !== "source") {
+                    setStep("source");
+                }
+                setMessage("Backend idle", false);
+                state.trackingAvailable = false;
+                updateTrackingButton();
+            }
+        } catch (error) {
+            setMessage(`Backend check failed: ${error.message}`);
+            document.getElementById("backend-status").value = "offline";
+            if (state.resumeButton) {
+                state.resumeButton.style.display = "none";
+            }
+            state.serverRoi = null;
+            state.trackingAvailable = false;
+            updateTrackingButton();
+        }
+    }
+
+    function initCanvases() {
+        state.previewCanvas = document.getElementById("preview-canvas");
+        state.previewCtx = state.previewCanvas.getContext("2d");
+        state.previewCanvasParams = document.getElementById("preview-canvas-params");
+        state.previewCtxParams = state.previewCanvasParams.getContext("2d");
+        state.offscreenCtx = state.offscreen.getContext("2d");
+        state.displayCanvas = document.getElementById("display-canvas");
+        state.displayCtx = state.displayCanvas.getContext("2d");
+        state.pupilMaskCanvas = document.getElementById("pupil-mask-canvas");
+        state.pupilMaskCtx = state.pupilMaskCanvas.getContext("2d");
+        state.glintMaskCanvas = document.getElementById("glint-mask-canvas");
+        state.glintMaskCtx = state.glintMaskCanvas.getContext("2d");
+        state.pupilMaskLabel = document.getElementById("pupil-mask-empty");
+        state.glintMaskLabel = document.getElementById("glint-mask-empty");
+        state.resumeButton = document.getElementById("resume-setup");
+        state.showTrackingButton = document.getElementById("show-tracking");
+    }
+
+    function addEventListeners() {
+        state.previewCanvas.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            beginRoiSelection(event);
+        });
+        state.previewCanvas.addEventListener("pointermove", (event) => {
+            if (!state.drawingRoi) {
+                return;
+            }
+            event.preventDefault();
+            updateRoiSelection(event);
+        });
+        state.previewCanvas.addEventListener("pointerup", (event) => {
+            event.preventDefault();
+            finishRoiSelection();
+        });
+        state.previewCanvas.addEventListener("pointerleave", () => {
+            if (state.drawingRoi) {
+                finishRoiSelection();
+            }
+        });
+        state.previewCanvas.addEventListener("dblclick", () => {
+            state.activeRoiRect = null;
+            state.pendingRoiFrame = null;
+            document.getElementById("roi-apply").disabled = true;
+            document.getElementById("roi-next").disabled = true;
+            setMessage("ROI reset");
+        });
+        state.previewCanvasParams.addEventListener("click", handlePreviewClick);
+
+        document.getElementById("start-usb").addEventListener("click", startUsbSetup);
+        document.getElementById("start-stream").addEventListener("click", startStreamSetup);
+        document.getElementById("refresh-status").addEventListener("click", () => refreshBackendStatus());
+        state.resumeButton.addEventListener("click", () => {
+            ensurePreviewSocket();
+            setStep("roi");
+            setMessage("Resumed ROI setup", true);
+        });
+        document.getElementById("roi-back").addEventListener("click", () => {
+            setStep("source");
+            setMessage("Choose a different video source.", true);
+        });
+        document.getElementById("roi-apply").addEventListener("click", applyRoi);
+        document.getElementById("roi-fullframe").addEventListener("click", useFullFrame);
+        document.getElementById("roi-next").addEventListener("click", () => setStep("params"));
+        document.getElementById("params-back").addEventListener("click", () => setStep("roi"));
+        document.getElementById("save-params").addEventListener("click", sendParameterUpdate);
+        document.getElementById("pick-pupil").addEventListener("click", () => setPickMode("pupil"));
+        document.getElementById("pick-glint").addEventListener("click", () => setPickMode("glint"));
+        document.getElementById("to-calibration").addEventListener("click", startCalibration);
+        if (state.showTrackingButton) {
+            state.showTrackingButton.addEventListener("click", async () => {
+                await runDisplayAction(async () => {
+                    enterDisplayMode("tracking");
+                    setDisplayButtonsForTracking();
+                });
+            });
+        }
+        document.getElementById("display-primary").addEventListener("click", async () => {
+            if (state.displayMode === "calibration" && state.calibrationIndex >= state.calibrationPoints.length) {
+                await runDisplayAction(() => finalizeCalibration());
+                return;
+            }
+            if (state.displayMode === "calibration") {
+                await runDisplayAction(() => captureCalibration(false));
+                return;
+            }
+            if (state.displayMode === "tracking") {
+                await runDisplayAction(async () => {
+                    leaveDisplayMode();
+                    setStep("params");
+                    state.trackingAvailable = true;
+                    updateTrackingButton();
+                });
+            }
+        });
+        document.getElementById("display-secondary").addEventListener("click", async () => {
+            if (state.displayMode === "calibration" && state.calibrationIndex >= state.calibrationPoints.length) {
+                await runDisplayAction(() => startCalibration());
+                return;
+            }
+            if (state.displayMode === "calibration") {
+                await runDisplayAction(() => captureCalibration(true));
+                return;
+            }
+            if (state.displayMode === "tracking") {
+                await runDisplayAction(() => startCalibration());
+            }
+        });
+        document.getElementById("display-tertiary").addEventListener("click", async () => {
+            if (state.displayMode === "tracking") {
+                await runDisplayAction(() => stopSession());
+            } else {
+                await runDisplayAction(async () => {
+                    leaveDisplayMode();
+                    setStep("params");
+                    state.trackingAvailable = true;
+                    updateTrackingButton();
+                });
+            }
+        });
+        window.addEventListener("resize", () => {
+            resizeDisplayCanvas();
+        });
+    }
+
+    async function fetchJSON(path, options = {}) {
+        const url = new URL(path, state.backendUrl);
+        const response = await fetch(url.toString(), {
+            method: options.method || "GET",
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+            },
+            body: options.body,
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `${response.status} ${response.statusText}`);
+        }
+        if (response.status === 204) {
+            return null;
+        }
+        return response.json();
+    }
+
+    function init() {
+        initCanvases();
+        addEventListeners();
+        initParameterControls();
+        refreshBackendStatus(true);
+        state.previewCtx.fillStyle = "#091018";
+        state.previewCtx.fillRect(0, 0, state.previewCanvas.width, state.previewCanvas.height);
+        state.previewCtxParams.fillStyle = "#091018";
+        state.previewCtxParams.fillRect(0, 0, state.previewCanvasParams.width, state.previewCanvasParams.height);
+        clearMaskCanvas(state.pupilMaskCanvas, state.pupilMaskCtx, state.pupilMaskLabel, "No data yet · define ROI");
+        clearMaskCanvas(state.glintMaskCanvas, state.glintMaskCtx, state.glintMaskLabel, "No data yet · define ROI");
+        updateTrackingButton();
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
